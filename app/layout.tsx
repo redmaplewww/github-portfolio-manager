@@ -2,12 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "枢纽 · 企业智能工作台",
-  description: "把人员、项目、审批与知识串成可行动的企业智能脉络。",
-  manifest: "/manifest.webmanifest",
-  applicationName: "枢纽办公",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "枢纽办公" },
-  icons: { icon: "/icons/nexus-192.svg", apple: "/icons/nexus-192.svg" },
+  title: "GitHub 代码版图",
+  description: "独立追踪 GitHub 仓库、Pull Request、协作者与开发事实。",
+  applicationName: "GitHub 代码版图",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "GitHub 代码版图" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

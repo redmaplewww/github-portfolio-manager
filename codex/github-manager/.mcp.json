@@ -1,0 +1,38 @@
+{
+  "mcpServers": {
+    "github_portfolio": {
+      "command": "cmd.exe",
+      "args": [
+        "/d",
+        "/s",
+        "/c",
+        "call",
+        "./scripts/launch-mcp.cmd"
+      ],
+      "cwd": ".",
+      "enabled": true,
+      "default_tools_approval_mode": "auto",
+      "tools": {
+        "apply_collaborator_change": {
+          "approval_mode": "prompt"
+        }
+      },
+      "env_vars": [
+        "PATH",
+        "PATHEXT",
+        "USERPROFILE",
+        "LOCALAPPDATA",
+        "APPDATA",
+        "GITHUB_PORTFOLIO_HOME",
+        "GH_HOST"
+      ],
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 300
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "bearer_token_env_var": "GITHUB_PAT_TOKEN"
+    }
+  }
+}

@@ -1,5 +1,5 @@
-import { OfficeShell } from "@/components/office-shell";
+import { GithubPortfolioWorkbench } from "@/components/github-portfolio-workbench";
 
 export default function Home() {
-  return <OfficeShell />;
+  return <GithubPortfolioWorkbench />;
 }

@@ -1,40 +1,25 @@
 {
-  "name": "nexus-office-agent",
+  "name": "github-portfolio-manager-web",
   "version": "0.14.0",
   "private": true,
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/redmaplewww/nexus-office-agent.git"
+    "url": "https://github.com/redmaplewww/github-portfolio-manager.git"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "node scripts/start-standalone.mjs",
-    "start:lan": "node scripts/start-lan.mjs",
-    "worker": "tsx scripts/worker.ts",
-    "pi-runner": "npm run pi-runner:bundle && node .pi-runtime/pi-runner.mjs",
-    "pi-runner:bundle": "node scripts/build-pi-runner.mjs",
-    "pi-sandbox:preflight": "tsx scripts/pi-sandbox-preflight.ts",
-    "pi-sandbox:supervisor:bundle": "node scripts/build-pi-sandbox-supervisor.mjs",
-    "pi-sandbox:supervisor": "npm run pi-sandbox:supervisor:bundle && node .pi-runtime/pi-sandbox-supervisor.mjs",
-    "pi-workspace:supervisor": "tsx scripts/pi-workspace-supervisor.ts",
+    "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration",
-    "test:performance": "vitest run tests/performance",
-    "test:watch": "vitest",
-    "db:migrate": "tsx scripts/migrate.ts",
-    "ops:backup": "tsx scripts/backup.ts",
-    "ops:restore": "tsx scripts/restore.ts",
-    "ops:smoke": "tsx scripts/http-performance-smoke.ts"
+    "test": "vitest run tests/unit/github-ai-merge-governance.test.ts"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "0.84.2",
     "@earendil-works/pi-coding-agent": "0.84.2",
     "@next/env": "16.3.0",
+    "@openai/codex-sdk": "^0.151.0",
     "lucide-react": "^0.468.0",
     "next": "^16.3.0",
     "postgres": "3.4.9",
