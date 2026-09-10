@@ -110,7 +110,7 @@ export function evaluateMergeGates(bundle: PullRequestBundle, review: AiMergeRev
     { id: "changes", label: "没有未解决的修改请求", passed: !policy.blockChangesRequested || !hasChangesRequested, detail: hasChangesRequested ? "存在 CHANGES_REQUESTED" : "未发现阻塞请求" },
     { id: "size", label: "变更规模在策略内", passed: bundle.changedFiles <= policy.maxFiles && changedLines <= policy.maxChangedLines, detail: `${bundle.changedFiles}/${policy.maxFiles} 文件 · ${changedLines}/${policy.maxChangedLines} 行` },
     { id: "paths", label: "未触及人工专审路径", passed: sensitive.length === 0, detail: sensitive.length ? sensitive.slice(0, 3).map((file) => file.path).join("、") : "未命中敏感路径" },
-    { id: "ai", label: "Codex 建议合并", passed: review?.verdict === "merge" && review.confidence >= policy.minimumAiConfidence, detail: review ? `${review.verdict} · ${Math.round(review.confidence * 100)}%` : "尚未运行 AI 审查" },
+    { id: "ai", label: "AI 建议合并", passed: review?.verdict === "merge" && review.confidence >= policy.minimumAiConfidence, detail: review ? `${review.verdict} · ${Math.round(review.confidence * 100)}%` : "尚未运行 AI 审查" },
     { id: "sha", label: "AI 审查对应当前提交", passed: Boolean(review && review.reviewedHeadSha === bundle.headRefOid), detail: review?.reviewedHeadSha === bundle.headRefOid ? bundle.headRefOid.slice(0, 8) : "审查已过期或不存在" },
   ];
   return { allowed: gates.every((gate) => gate.passed), gates };

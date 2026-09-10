@@ -2,7 +2,7 @@
 
 ## 目标
 
-在代码版图控制台内完成追踪仓库的 PR 预览、Diff/源码上下文检查、Codex SDK 审查、合并计划生成与人工确认合并，不要求管理者跳转到 GitHub。
+在代码版图控制台内完成追踪仓库的 PR 预览、Diff/源码上下文检查、独立 AI Agent 审查、合并计划生成与人工确认合并，不要求管理者跳转到 GitHub。
 
 ## 能力分层
 
@@ -49,6 +49,12 @@
 
 ## 失败与撤回
 
-- GitHub 读取、Codex SDK 或结构化输出失败时，AI 结论失败关闭；CI/评审等合并门禁证据缺失只阻止合并计划，不把它自动升级为当前代码的 `needs_changes`。
+- AI 审查由应用内自研 Agent（`src/modules/github-portfolio/agent-review.ts`）执行：原生 HTTP 直连 OpenAI 兼容 Chat Completions 接口（SSE 流式读取），不依赖外部 CLI 或 SDK 子进程。150 秒空闲超时、全程最多 3 次模型调用；未收到完整响应的连接中断自动重试（最多 2 次，不占模型调用额度）；结构化输出在 `json_schema` → `json_object` → 纯提示三级之间自动降级，校验失败会追加一次修复调用，仍失败则整体失败关闭。
+- AI 接口配置（按优先级取第一个非空值，兼容任意 OpenAI 兼容供应商）：
+  - API Key：`GITHUB_PR_REVIEW_API_KEY` → `LLM_API_KEY` → `OPENAI_API_KEY`
+  - Base URL：`GITHUB_PR_REVIEW_BASE_URL` → `LLM_BASE_URL` → `OPENAI_BASE_URL`（默认 `https://api.openai.com/v1`；base URL 带不带 `/v1` 前缀均可，网关会自动探测）
+  - 模型：`GITHUB_PR_REVIEW_MODEL` → `LLM_MODEL` → `OPENAI_MODEL`
+  - 推理力度：`GITHUB_PR_REVIEW_REASONING_EFFORT`（默认 `medium`；`high` 在伪流式网关下可能因首字节等待过久被本地代理掐断连接）
+- GitHub 读取、AI 接口或结构化输出失败时，AI 结论失败关闭；CI/评审等合并门禁证据缺失只阻止合并计划，不把它自动升级为当前代码的 `needs_changes`。
 - 刷新 PR 或再次运行 AI 审查可替换旧结论；head SHA 改变会使旧审查和旧令牌立即失效。
 - 合并是不可逆的仓库写操作，因此控制台不会提供绕过确认的隐藏路径。

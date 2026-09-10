@@ -13,7 +13,6 @@ const nextConfig: NextConfig = {
     "@earendil-works/pi-client",
     "@earendil-works/pi-protocol",
     "@earendil-works/pi-tui",
-    "@openai/codex-sdk",
   ],
   // The in-app browser reaches the dev server through 127.0.0.1 while Next
   // advertises localhost. Allow both loopback aliases for development assets.

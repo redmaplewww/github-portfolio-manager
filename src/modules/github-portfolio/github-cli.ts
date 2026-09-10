@@ -97,6 +97,36 @@ export async function listOpenPullRequests(repositories?: string[]): Promise<Pul
   return results.flat().sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
 }
 
+const OPEN_COUNTS_MAX_REPOSITORIES = 120;
+const OPEN_COUNTS_BATCH_SIZE = 40;
+
+async function queryOpenCountsBatch(batch: string[]): Promise<Array<readonly [string, number]>> {
+  const aliases = batch.map((repository, index) => {
+    const [owner, name] = repository.split("/");
+    return `r${index}: repository(owner: ${JSON.stringify(owner)}, name: ${JSON.stringify(name)}) { pullRequests(states: OPEN) { totalCount } }`;
+  });
+  const raw = await runJson("gh.exe", ["api", "graphql", "-f", `query={ ${aliases.join(" ")} }`]);
+  const data = ((raw as UnknownRecord).data || {}) as Record<string, { pullRequests?: { totalCount?: number } } | null>;
+  return batch.map((repository, index) => [repository, Number(data[`r${index}`]?.pullRequests?.totalCount || 0)] as const);
+}
+
+export async function openPullRequestCounts(repositories: string[]): Promise<Record<string, number>> {
+  const scope = [...new Set(repositories.filter((repository) => REPOSITORY_PATTERN.test(repository)))].slice(0, OPEN_COUNTS_MAX_REPOSITORIES);
+  const batches: string[][] = [];
+  for (let index = 0; index < scope.length; index += OPEN_COUNTS_BATCH_SIZE) batches.push(scope.slice(index, index + OPEN_COUNTS_BATCH_SIZE));
+  // 已删除或改名的仓库会让整批 GraphQL 查询失败；降级为逐仓查询，坏仓库记 0。
+  const results = await Promise.all(batches.map(async (batch) => {
+    try {
+      return await queryOpenCountsBatch(batch);
+    } catch {
+      return Promise.all(batch.map(async (repository) => {
+        try { return (await queryOpenCountsBatch([repository]))[0]; } catch { return [repository, 0] as const; }
+      }));
+    }
+  }));
+  return Object.fromEntries(results.flat());
+}
+
 async function pullFiles(repository: string, number: number): Promise<PullRequestFile[]> {
   const raw = await runJson("gh.exe", ["api", `repos/${repository}/pulls/${number}/files?per_page=100`]);
   return (Array.isArray(raw) ? raw : []).map((item) => {

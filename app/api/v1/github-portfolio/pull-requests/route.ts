@@ -1,11 +1,12 @@
 import { z } from "zod";
 import { cached, invalidateCache } from "@/src/modules/github-portfolio/web-cache";
-import { runCodexMergeReview } from "@/src/modules/github-portfolio/codex-review";
+import { runAiMergeReview } from "@/src/modules/github-portfolio/agent-review";
 import {
   collectSourceComparisons,
   getPullRequestBundle,
   listOpenPullRequests,
   mergePullRequest,
+  openPullRequestCounts,
 } from "@/src/modules/github-portfolio/github-cli";
 import {
   consumeMergePlan,
@@ -22,7 +23,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const aiReviewInFlight = new Map<string, Promise<Awaited<ReturnType<typeof runCodexMergeReview>>>>();
+const aiReviewInFlight = new Map<string, Promise<Awaited<ReturnType<typeof runAiMergeReview>>>>();
 
 const repositorySchema = z.string().regex(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/);
 const pullNumberSchema = z.coerce.number().int().positive();
@@ -64,6 +65,15 @@ export async function GET(request: Request) {
     }
     if (action === "overview-reviews") {
       return Response.json({ ok: true, data: await listCachedAiReviews() });
+    }
+    if (action === "open-counts") {
+      const repositories = String(url.searchParams.get("repositories") || "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .slice(0, 120);
+      const result = await cached(`pull-requests:open-counts:${repositories.join(",")}`, 5 * 60_000, () => openPullRequestCounts(repositories));
+      return Response.json({ ok: true, data: result.value, cache: { hit: result.cached, ageMs: result.ageMs } });
     }
     const { repository, number } = identity(url.searchParams);
     if (action === "policy") {
@@ -111,7 +121,7 @@ export async function POST(request: Request) {
       if (!reviewPromise) {
         reviewPromise = (async () => {
           const sources = await collectSourceComparisons(bundle, policy);
-          const review = await runCodexMergeReview(bundle, sources, policy);
+          const review = await runAiMergeReview(bundle, sources, policy);
           await saveAiReview(repository, number, review);
           return review;
         })();

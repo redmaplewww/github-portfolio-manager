@@ -20,3 +20,6 @@ out/
 docs/19-vastmind-wecom-rollout.md
 deploy/single-host/vastmind-office.nginx
 public/brand/vastmind-wecom-icon*.png
+
+# ZCode session data
+.zcode/

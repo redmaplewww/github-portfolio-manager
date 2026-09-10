@@ -158,9 +158,9 @@ export function GithubPullRequestWorkbench() {
         body: JSON.stringify({ action: "ai-review", repository: selected.repository, number: selected.number }),
       });
       await loadDetail(selected);
-      setNotice("Codex 审查完成，结论已绑定当前 head SHA");
+      setNotice("AI 审查完成，结论已绑定当前 head SHA");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Codex 审查失败");
+      setError(cause instanceof Error ? cause.message : "AI 审查失败");
     } finally {
       setBusy(null);
     }
@@ -230,7 +230,7 @@ export function GithubPullRequestWorkbench() {
 
   return <main className={styles.shell}>
     <header className={styles.topbar}>
-      <div className={styles.brand}><span><GitMerge size={17} /></span><div><b>PR 审查台</b><small>CODEX MERGE CONTROL</small></div></div>
+      <div className={styles.brand}><span><GitMerge size={17} /></span><div><b>PR 审查台</b><small>AI MERGE CONTROL</small></div></div>
       <div className={styles.topActions}><Link href="/github"><ArrowLeft size={14} />代码版图</Link><button onClick={() => void loadQueue()} aria-label="刷新 PR 队列"><RefreshCw size={15} className={loading ? styles.spin : ""} /></button></div>
     </header>
     <section className={styles.commandBar}>
@@ -270,10 +270,10 @@ export function GithubPullRequestWorkbench() {
       </section>
 
       <aside className={styles.aiRail}>
-        <header className={styles.aiHeader}><span><Sparkles size={15} />CODEX REVIEW</span><em>{detail?.review?.model || "等待运行"}</em></header>
+        <header className={styles.aiHeader}><span><Sparkles size={15} />AI REVIEW</span><em>{detail?.review?.model || "等待运行"}</em></header>
         {detail ? <>
           <Verdict review={detail.review} />
-          <button className={styles.reviewButton} disabled={busy !== null} onClick={() => void runReview()}>{busy === "review" ? <LoaderCircle className={styles.spin} size={15} /> : <Bot size={15} />}{detail.review ? "重新运行 Codex 审查" : "运行 Codex 审查"}</button>
+          <button className={styles.reviewButton} disabled={busy !== null} onClick={() => void runReview()}>{busy === "review" ? <LoaderCircle className={styles.spin} size={15} /> : <Bot size={15} />}{detail.review ? "重新运行 AI 审查" : "运行 AI 审查"}</button>
           <section className={styles.gates}>
             <header><b>确定性合并门禁</b><span>{evaluation?.gates.filter((gate) => gate.passed).length || 0}/{evaluation?.gates.length || 0}</span></header>
             {evaluation?.gates.map((gate) => <div key={gate.id} className={gate.passed ? styles.gatePass : styles.gateBlock}>{gate.passed ? <CheckCircle2 size={14} /> : <XCircle size={14} />}<span><b>{gate.label}</b><small>{gate.detail}</small></span></div>)}
@@ -282,7 +282,7 @@ export function GithubPullRequestWorkbench() {
             <button disabled={busy !== null || !detail.review} onClick={() => void createPlan()}>{busy === "plan" ? <LoaderCircle className={styles.spin} size={15} /> : <ShieldCheck size={15} />}生成合并计划</button>
             <small>不会直接合并；计划通过后仍需你输入确认短语。</small>
           </div>
-        </> : <div className={styles.aiEmpty}><ShieldAlert size={23} /><b>AI 不拥有最终决定权</b><p>先选择 PR。Codex 会读取受限 Diff 与源码上下文，但不能修改仓库或绕过门禁。</p></div>}
+        </> : <div className={styles.aiEmpty}><ShieldAlert size={23} /><b>AI 不拥有最终决定权</b><p>先选择 PR。审查 Agent 会读取受限 Diff 与源码上下文，但不能修改仓库或绕过门禁。</p></div>}
       </aside>
     </div>
 
@@ -314,7 +314,7 @@ function ChecksView({ detail }: { detail: DetailResponse }) {
 }
 
 function Verdict({ review }: { review: AiMergeReview | null }) {
-  if (!review) return <section className={styles.verdictEmpty}><Bot size={22} /><b>尚未生成 AI 结论</b><p>Codex 只比较当前补丁和允许读取的局部源码；CI、评审和项目完整性由独立合并门禁处理。</p></section>;
+  if (!review) return <section className={styles.verdictEmpty}><Bot size={22} /><b>尚未生成 AI 结论</b><p>审查 Agent 只比较当前补丁和允许读取的局部源码；CI、评审和项目完整性由独立合并门禁处理。</p></section>;
   const merge = review.verdict === "merge";
   return <section className={`${styles.verdict} ${merge ? styles.verdictMerge : styles.verdictHold}`}><div className={styles.verdictTop}><span>{merge ? <CheckCircle2 size={18} /> : <ShieldAlert size={18} />}{verdictLabel(review.verdict)}</span><b>{Math.round(review.confidence * 100)}%</b></div><p>{review.summary}</p><small>审查提交 {review.reviewedHeadSha.slice(0, 8)} · {date(review.reviewedAt)} · 仅评价当前变更，不代表项目完整或已满足合并门禁</small>{review.findings.length ? <div className={styles.findings}>{review.findings.slice(0, 6).map((finding, index) => <article key={`${finding.title}-${index}`}><em data-severity={finding.severity}>{finding.severity}</em><b>{finding.title}</b><p>{finding.explanation}</p>{finding.file ? <code>{finding.file}{finding.line ? `:${finding.line}` : ""}</code> : null}</article>)}</div> : null}</section>;
 }

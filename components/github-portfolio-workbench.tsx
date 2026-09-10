@@ -53,6 +53,7 @@ export function GithubPortfolioWorkbench() {
   const [busy, setBusy] = useState<string | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [prCounts, setPrCounts] = useState<Record<string, number> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const autoReviewStarted = useRef(false);
@@ -86,6 +87,14 @@ export function GithubPortfolioWorkbench() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => { if (!toast) return; const timer = window.setTimeout(() => setToast(null), 3500); return () => window.clearTimeout(timer); }, [toast]);
+  useEffect(() => {
+    if (!showPicker || !discovered.length || prCounts) return;
+    let cancelled = false;
+    api<Record<string, number>>(`/api/v1/github-portfolio/pull-requests?action=open-counts&repositories=${encodeURIComponent(discovered.map((repo) => repo.nameWithOwner).join(","))}`)
+      .then((counts) => { if (!cancelled) setPrCounts(counts || {}); })
+      .catch(() => { if (!cancelled) setPrCounts({}); });
+    return () => { cancelled = true; };
+  }, [showPicker, discovered, prCounts]);
 
   const tracked = status?.trackedRepositories || [];
   const repoMap = useMemo(() => new Map([...demoRepositories, ...discovered].map((repo) => [repo.nameWithOwner, repo])), [discovered]);
@@ -128,6 +137,12 @@ export function GithubPortfolioWorkbench() {
   };
 
   const commitSelection = () => void mutate("track", { repositories: selected, mode: "replace" }, `已将 ${selected.length} 个仓库加入追踪` ).then((ok) => { if (ok) setShowPicker(false); });
+  const pickerRepos = discovered.length ? discovered : demoRepositories;
+  const counts = prCounts || {};
+  const prCountsLoading = discovered.length > 0 && prCounts === null;
+  const pickerSorted = [...pickerRepos].sort((a, b) => ((counts[b.nameWithOwner] || 0) - (counts[a.nameWithOwner] || 0)) || a.nameWithOwner.localeCompare(b.nameWithOwner));
+  const reposWithOpenPr = pickerRepos.filter((repo) => (counts[repo.nameWithOwner] || 0) > 0);
+  const selectReposWithOpenPr = () => setSelected((current) => Array.from(new Set([...current, ...reposWithOpenPr.map((repo) => repo.nameWithOwner)])));
   const repoCards = (tracked.length ? tracked : discovered.slice(0, 3).map((repo) => repo.nameWithOwner)).map((name) => repoMap.get(name) || { nameWithOwner: name });
 
   return <main className={styles.shell}>
@@ -151,7 +166,7 @@ export function GithubPortfolioWorkbench() {
         <aside className={styles.sideStack}><section className={styles.ledgerPanel}><header className={styles.panelHead}><div><span className={styles.kicker}>WORKLOAD LEDGER</span><h2>成员工作量事实</h2></div><span className={styles.panelCount}>{contributors.length || "—"}</span></header>{contributors.length ? <div className={styles.peopleList}>{contributors.slice(0, 5).map((person) => <PersonRow key={person.login} person={person} />)}</div> : <p className={styles.muted}>完成首份摘要后，按 PR、评审、提交与增删行展示活动事实。<br /><small>不自动等同绩效评分。</small></p>}</section><section className={styles.darkPanel}><ShieldCheck size={18} /><div><b>边界清楚，动作可审计</b><p>读取 GitHub 事实；成员权限变更仍需先生成计划，再由你确认。</p><button onClick={() => setTab("people")}>查看协作者管理 <ArrowUpRight size={13} /></button></div></section></aside>
       </div> : tab === "repositories" ? <RepositoriesTab repos={repoCards} tracked={tracked} assignments={assignments} onManage={() => { setSelected(tracked); setShowPicker(true); }} /> : tab === "people" ? <PeopleTab repos={repoCards} summary={summary} assignments={assignments} busy={busy} onAssign={(repository, login) => void mutate("assign", { repository, login, responsibility: "contributor", mode: "upsert" }, "已记录仓库分工")} /> : <ReportingTab status={status} disabled={busy !== null} onSave={(body) => void mutate("reporting", body, "报告节奏已保存")} />}
     </section>
-    {showPicker ? <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowPicker(false); }}><section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="picker-title"><header><div><span className={styles.kicker}>TRACKING SCOPE</span><h2 id="picker-title">选择要追踪的仓库</h2><p>只会读取你勾选的仓库，报告也只围绕这个范围生成。</p></div><button onClick={() => setShowPicker(false)} aria-label="关闭"><X size={17} /></button></header><div className={styles.repoPicker}>{(discovered.length ? discovered : demoRepositories).map((repo) => <label key={repo.nameWithOwner} className={styles.repoOption}><input type="checkbox" checked={selected.includes(repo.nameWithOwner)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, repo.nameWithOwner] : current.filter((name) => name !== repo.nameWithOwner))} /><span className={styles.repoGlyph}><Code2 size={15} /></span><span><b>{repo.nameWithOwner}</b><small>{repo.description || "无描述"}</small></span><em>{repo.visibility || "public"}</em></label>)}</div><footer><span>{selected.length} 个仓库已选</span><button className={styles.primaryButton} disabled={busy === "track"} onClick={commitSelection}>{busy === "track" ? <LoaderCircle size={15} className={styles.spin} /> : <Check size={15} />}保存追踪范围</button></footer></section></div> : null}
+    {showPicker ? <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowPicker(false); }}><section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="picker-title"><header><div><span className={styles.kicker}>TRACKING SCOPE</span><h2 id="picker-title">选择要追踪的仓库</h2><p>按开放 PR 数从多到少排序；只会读取你勾选的仓库，报告也只围绕这个范围生成。</p></div><button onClick={() => setShowPicker(false)} aria-label="关闭"><X size={17} /></button></header><div className={styles.repoPicker}>{pickerSorted.map((repo) => <label key={repo.nameWithOwner} className={styles.repoOption}><input type="checkbox" checked={selected.includes(repo.nameWithOwner)} onChange={(event) => setSelected((current) => event.target.checked ? [...current, repo.nameWithOwner] : current.filter((name) => name !== repo.nameWithOwner))} /><span className={styles.repoGlyph}><Code2 size={15} /></span><span><b>{repo.nameWithOwner}</b><small>{repo.description || "无描述"}</small></span><span className={styles.repoOptionMeta}>{discovered.length ? <span className={(counts[repo.nameWithOwner] || 0) > 0 ? styles.prCountBadge : styles.prCountZero}>{prCountsLoading ? "…" : `${counts[repo.nameWithOwner] || 0} PR`}</span> : null}<em>{repo.visibility || "public"}</em></span></label>)}</div><footer><span>{selected.length} 个仓库已选{discovered.length && !prCountsLoading ? ` · ${reposWithOpenPr.length} 个有开放 PR` : ""}</span><span className={styles.footerActions}><button className={styles.secondaryButton} disabled={prCountsLoading || !reposWithOpenPr.length} onClick={selectReposWithOpenPr}><GitPullRequest size={13} />一键选中有 PR 的仓库</button><button className={styles.primaryButton} disabled={busy === "track"} onClick={commitSelection}>{busy === "track" ? <LoaderCircle size={15} className={styles.spin} /> : <Check size={15} />}保存追踪范围</button></span></footer></section></div> : null}
     {toast ? <div className={styles.toast}><Check size={15} />{toast}</div> : null}
   </main>;
 }

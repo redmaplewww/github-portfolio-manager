@@ -13,13 +13,12 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run tests/unit/github-ai-merge-governance.test.ts"
+    "test": "vitest run tests/unit"
   },
   "dependencies": {
     "@earendil-works/pi-ai": "0.84.2",
     "@earendil-works/pi-coding-agent": "0.84.2",
     "@next/env": "16.3.0",
-    "@openai/codex-sdk": "^0.151.0",
     "lucide-react": "^0.468.0",
     "next": "^16.3.0",
     "postgres": "3.4.9",
