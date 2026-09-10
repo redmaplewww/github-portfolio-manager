@@ -8,7 +8,7 @@ const execFileAsync = promisify(execFile);
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const DEFAULT_PLUGIN_ROOT = "C:\\Users\\zzg\\plugins\\github-portfolio-manager";
+const DEFAULT_PLUGIN_ROOT = path.resolve(process.cwd(), "codex", "github-manager");
 const COMMANDS = new Set([
   "status",
   "discover",

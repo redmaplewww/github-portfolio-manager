@@ -45,6 +45,18 @@ function keyFor(key: string, params?: unknown) {
   return params === undefined ? key : `${key}:${JSON.stringify(params)}`;
 }
 
+function revalidate<T>(cacheKey: string, loader: () => Promise<T>): Promise<T> {
+  const request = loader().then(async (value) => {
+    await mutateCache((latest) => {
+      latest[cacheKey] = { storedAt: Date.now(), value };
+      return true;
+    });
+    return value;
+  });
+  inFlight.set(cacheKey, request);
+  return request.finally(() => { inFlight.delete(cacheKey); });
+}
+
 export async function cached<T>(key: string, ttlMs: number, loader: () => Promise<T>, staleMs = 24 * 60 * 60 * 1000): Promise<{ value: T; cached: boolean; ageMs: number }> {
   const cacheKey = keyFor(key);
   const now = Date.now();
@@ -54,30 +66,31 @@ export async function cached<T>(key: string, ttlMs: number, loader: () => Promis
     return { value: existing.value as T, cached: true, ageMs: now - existing.storedAt };
   }
 
+  // Beyond the TTL but still inside the stale window: serve the persisted
+  // value immediately (e.g. right after a server restart) and refresh in the
+  // background so the next request sees fresh data.
+  if (existing && now - existing.storedAt <= staleMs) {
+    const current = inFlight.get(cacheKey);
+    if (!current) {
+      void revalidate(cacheKey, loader).catch(() => undefined);
+    }
+    return { value: existing.value as T, cached: true, ageMs: now - existing.storedAt };
+  }
+
   const current = inFlight.get(cacheKey);
   if (current) {
     const value = await current as T;
     return { value, cached: false, ageMs: 0 };
   }
 
-  const request = loader().then(async (value) => {
-    await mutateCache((latest) => {
-      latest[cacheKey] = { storedAt: Date.now(), value };
-      return true;
-    });
-    return value;
-  });
-  inFlight.set(cacheKey, request);
   try {
-    const value = await request;
+    const value = await revalidate(cacheKey, loader);
     return { value, cached: false, ageMs: 0 };
   } catch (error) {
-    if (existing && now - existing.storedAt <= staleMs) {
+    if (existing) {
       return { value: existing.value as T, cached: true, ageMs: now - existing.storedAt };
     }
     throw error;
-  } finally {
-    inFlight.delete(cacheKey);
   }
 }
 

@@ -11,7 +11,7 @@ import type {
 } from "./contracts";
 
 const execFileAsync = promisify(execFile);
-const DEFAULT_PLUGIN_ROOT = "C:\\Users\\zzg\\plugins\\github-portfolio-manager";
+const DEFAULT_PLUGIN_ROOT = path.resolve(process.cwd(), "codex", "github-manager");
 const REPOSITORY_PATTERN = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const TEXT_EXTENSION_PATTERN = /\.(?:[cm]?[jt]sx?|py|go|rs|java|kt|kts|rb|php|cs|cpp|cc|c|h|hpp|swift|scala|sql|html?|css|scss|sass|less|md|mdx|txt|json|ya?ml|toml|ini|env|xml|graphql|sh|ps1|bat)$/i;
 const SKIPPED_SOURCE_PATTERN = /(?:^|\/)(?:node_modules|dist|build|coverage|vendor)\/|(?:package-lock|pnpm-lock|yarn\.lock|min\.js|\.map)$/i;
